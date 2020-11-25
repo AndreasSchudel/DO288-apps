@@ -41,10 +41,45 @@ lab trigger-builds finish
 
 ----------------------------------------------------------------------
 lab post-commit start
-
-
-
+-> does not work
 lab post-commit finish
 ----------------------------------------------------------------------
+
+
+----------------------------------------------------------------------
+lab build-app start
+
+source /usr/local/etc/ocp4.config
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+oc new-project ${RHT_OCP4_DEV_USER}-build-app
+
+cat ~/DO288/labs/build-app/oc-new-app.sh
+~/DO288/labs/build-app/oc-new-app.sh
+
+oc logs -f bc/simple
+oc set env bc simple --list
+oc set env bc simple npm_config_registry=http://${RHT_OCP4_NEXUS_SERVER}/repository/nodejs
+oc set env bc simple --list
+oc start-build simple -F
+
+oc expose svc simple
+oc get route/simple -o jsonpath='{.spec.host}{"\n"}'
+
+oc get pods
+curl simple-${RHT_OCP4_DEV_USER}-build-app.${RHT_OCP4_WILDCARD_DOMAIN}
+
+oc describe bc simple
+oc get bc simple -o jsonpath="{.spec.triggers[*].generic.secret}{'\n'}"
+curl -X POST -k ${RHT_OCP4_MASTER_API}/apis/build.openshift.io/v1/namespaces/${RHT_OCP4_DEV_USER}-build-app/buildconfigs/simple/webhooks/ZYIdgpeyyL6P_Jwxn4Cs/generic
+
+oc get builds
+oc logs -f bc/simple
+oc get pods
+
+lab build-app grade
+oc delete project ${RHT_OCP4_DEV_USER}-build-app
+lab build-app finish
+----------------------------------------------------------------------
+
 
 
