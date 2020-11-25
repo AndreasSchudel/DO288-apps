@@ -1,0 +1,40 @@
+
+----------------------------------------------------------------------
+lab trigger-builds start
+
+source /usr/local/etc/ocp4.config
+
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+oc new-project ${RHT_OCP4_DEV_USER}-trigger-builds
+
+podman login -u ${RHT_OCP4_QUAY_USER} quay.io
+
+
+cd /home/student/DO288/labs/trigger-builds
+skopeo copy docker-archive:php-70-rhel7-original.tar.gz docker://quay.io/${RHT_OCP4_QUAY_USER}/php-70-rhel7:latest
+
+oc create secret generic quay-registry --from-file .dockerconfigjson=${XDG_RUNTIME_DIR}/containers/auth.json --type kubernetes.io/dockerconfigjson
+oc secrets link builder quay-registry
+
+oc import-image php --from quay.io/${RHT_OCP4_QUAY_USER}/php-70-rhel7 --confirm
+
+oc new-app --as-deployment-config --name trigger php~http://github.com/${RHT_OCP4_GITHUB_USER}/DO288-apps --context-dir trigger-builds
+
+oc logs -f bc/trigger
+oc get pods
+
+oc describe bc/trigger | grep Triggered
+
+skopeo copy docker-archive:php-70-rhel7-newer.tar.gz docker://quay.io/${RHT_OCP4_QUAY_USER}/php-70-rhel7:latest
+
+oc import-image php
+
+oc get builds
+oc describe build trigger-2 | grep cause
+
+cd ~
+skopeo delete docker://quay.io/${RHT_OCP4_QUAY_USER}/php-70-rhel7
+
+lab trigger-builds finish
+----------------------------------------------------------------------
+
