@@ -188,6 +188,78 @@ lab apache-s2i finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
+lab custom-s2i start
+
+vi ~/DO288/labs/custom-s2i/Dockerfile
+COPY ./s2i/bin/ /usr/libexec/s2i
+
+cd ~/DO288/labs/custom-s2i
+sudo podman build -t s2i-do288-go .
+sudo podman images
+
+mkdir /home/student/s2i-go-app
+s2i build test/test-app/ s2i-do288-go s2i-go-app --as-dockerfile /home/student/s2i-go-app/Dockerfile
+cd ~/s2i-go-app
+sudo podman build -t s2i-go-app .
+sudo podman images
+
+sudo podman run --name go-test -u 1234  -p 8080:8080 -d s2i-go-app
+sudo podman ps
+curl http://localhost:8080/user1
+sudo podman stop go-test
+
+source /usr/local/etc/ocp4.config
+sudo podman login -u ${RHT_OCP4_QUAY_USER} quay.io
+sudo skopeo copy containers-storage:localhost/s2i-do288-go docker://quay.io/${RHT_OCP4_QUAY_USER}/s2i-do288-go
+
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+oc new-project ${RHT_OCP4_DEV_USER}-custom-s2i
+podman login -u ${RHT_OCP4_QUAY_USER} quay.io
+oc create secret generic quayio --from-file .dockerconfigjson=${XDG_RUNTIME_DIR}/containers/auth.json --type=kubernetes.io/dockerconfigjson
+oc secrets link builder quayio
+oc import-image s2i-do288-go --from quay.io/${RHT_OCP4_QUAY_USER}/s2i-do288-go --confirm
+oc get is
+
+cd DO288-apps
+git checkout master
+
+git checkout -b custom-s2i
+git push -u origin custom-s2i
+cd ~
+
+oc new-app --as-deployment-config --name greet s2i-do288-go~https://github.com/${RHT_OCP4_GITHUB_USER}/DO288-apps#custom-s2i --context-dir=go-hello
+
+oc logs -f bc/greet
+oc get pods
+oc expose svc greet
+oc get route/greet -o jsonpath='{.spec.host}{"\n"}'
+curl http://greet-${RHT_OCP4_DEV_USER}-custom-s2i.${RHT_OCP4_WILDCARD_DOMAIN}/user1
+
+mkdir -p ~/DO288-apps/go-hello/.s2i/bin
+cp ~/DO288/labs/custom-s2i/s2i/bin/run ~/DO288-apps/go-hello/.s2i/bin/
+
+vi ~/DO288-apps/go-hello/.s2i/bin/run
+-> exec /opt/app-root/app --lang es
+
+cd ~/DO288-apps/go-hello
+git add .
+git commit -m "Customized run script"
+git push
+cd ~
+
+oc start-build greet
+oc logs -f bc/greet
+oc get pods
+curl http://greet-${RHT_OCP4_DEV_USER}-custom-s2i.${RHT_OCP4_WILDCARD_DOMAIN}/user1
+
+lab custom-s2i grade
+
+oc delete project ${RHT_OCP4_DEV_USER}-custom-s2i
+sudo podman rm go-test
+sudo podman rmi -f localhost/s2i-go-app localhost/s2i-do288-go registry.access.redhat.com/ubi8/ubi:8.0
+sudo skopeo delete docker://quay.io/${RHT_OCP4_QUAY_USER}/s2i-do288-go:latest
+
+lab custom-s2i finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
