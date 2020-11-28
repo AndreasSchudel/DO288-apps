@@ -94,7 +94,7 @@ cd DO288-apps
 git checkout master
 
 cat /home/student/DO288-apps/s2i-scripts/index.html
-ls -l /home/student/DO288-apps/s2i-scripts/.s2i/bin 
+ls -l /home/student/DO288-apps/s2i-scripts/.s2i/bin
 cat /home/student/DO288-apps/s2i-scripts/.s2i/bin/assemble
 cat /home/student/DO288-apps/s2i-scripts/.s2i/bin/run
 
@@ -112,13 +112,13 @@ oc get route
 curl http://bonjour-${RHT_OCP4_DEV_USER}-s2i-scripts.${RHT_OCP4_WILDCARD_DOMAIN}
 curl http://bonjour-${RHT_OCP4_DEV_USER}-s2i-scripts.${RHT_OCP4_WILDCARD_DOMAIN}/info.html
 
-oc logs bonjour-1-
+oc logs bonjour-1-z627m
 
 cd ~
 oc delete project ${RHT_OCP4_DEV_USER}-s2i-scripts
 sudo podman rm test
 
-lab s2i-scripts finsih
+lab s2i-scripts finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
