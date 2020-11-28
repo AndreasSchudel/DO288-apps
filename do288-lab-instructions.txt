@@ -122,6 +122,68 @@ lab s2i-scripts finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
+lab apache-s2i start
+
+s2i version
+s2i create s2i-do288-httpd s2i-do288-httpd
+tree -a s2i-do288-httpd
+
+cat ~/DO288/labs/apache-s2i/Dockerfile
+cp ~/DO288/labs/apache-s2i/Dockerfile ~/s2i-do288-httpd/
+cp -Rv ~/DO288/labs/apache-s2i/s2i ~/s2i-do288-httpd/
+rm -f ~/s2i-do288-httpd/s2i/bin/save-artifacts
+cd s2i-do288-httpd
+s2i-do288-httpd]$ sudo podman build -t s2i-do288-httpd
+
+sudo podman images
+cat ~/DO288/labs/apache-s2i/index.html 
+cp ~/DO288/labs/apache-s2i/index.html ~/s2i-do288-httpd/test/test-app/
+
+mkdir /home/student/s2i-sample-app
+s2i build test/test-app/ s2i-do288-httpd s2i-sample-app --as-dockerfile ~/s2i-sample-app/Dockerfile
+
+cd ~/s2i-sample-app
+tree .
+
+cat Dockerfile
+sudo podman build --format docker -t s2i-sample-app .
+sudo podman images
+sudo podman run --name test -u 1234 -p 8080:8080 -d s2i-sample-app
+sudo podman ps
+
+curl http://localhost:8080
+sudo podman stop test
+
+source /usr/local/etc/ocp4.config
+sudo podman login -u ${RHT_OCP4_QUAY_USER} quay.io
+
+sudo skopeo copy containers-storage:localhost/s2i-do288-httpd docker://quay.io/${RHT_OCP4_QUAY_USER}/s2i-do288-httpd
+
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+oc new-project ${RHT_OCP4_DEV_USER}-apache-s2i
+
+podman login -u ${RHT_OCP4_QUAY_USER} quay.io
+
+oc create secret generic quayio --from-file .dockerconfigjson=${XDG_RUNTIME_DIR}/containers/auth.json --type=kubernetes.io/dockerconfigjson
+
+oc secrets link builder quayio
+oc import-image s2i-do288-httpd --from quay.io/${RHT_OCP4_QUAY_USER}/s2i-do288-httpd --confirm
+
+oc get is
+oc new-app --as-deployment-config --name hello-s2i s2i-do288-httpd~https://github.com/${RHT_OCP4_GITHUB_USER}/DO288-apps --context-dir=html-helloworld
+
+oc logs -f bc/hello-s2i
+oc get pods
+oc expose svc hello-s2i
+oc get route/hello-s2i -o jsonpath='{.spec.host}{"\n"}'
+curl http://hello-s2i-${RHT_OCP4_DEV_USER}-apache-s2i.${RHT_OCP4_WILDCARD_DOMAIN}
+
+oc delete project ${RHT_OCP4_DEV_USER}-apache-s2i
+sudo podman rm test
+sudo podman rmi -f localhost/s2i-sample-app localhost/s2i-do288-httpd registry.access.redhat.com/ubi8/ubi:8.0
+sudo skopeo delete docker://quay.io/${RHT_OCP4_QUAY_USER}/s2i-do288-httpd:latest
+
+lab apache-s2i finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
