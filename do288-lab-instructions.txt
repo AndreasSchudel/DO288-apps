@@ -133,7 +133,7 @@ cp ~/DO288/labs/apache-s2i/Dockerfile ~/s2i-do288-httpd/
 cp -Rv ~/DO288/labs/apache-s2i/s2i ~/s2i-do288-httpd/
 rm -f ~/s2i-do288-httpd/s2i/bin/save-artifacts
 cd s2i-do288-httpd
-s2i-do288-httpd]$ sudo podman build -t s2i-do288-httpd
+sudo podman build -t s2i-do288-httpd .
 
 sudo podman images
 cat ~/DO288/labs/apache-s2i/index.html 
@@ -182,6 +182,7 @@ oc delete project ${RHT_OCP4_DEV_USER}-apache-s2i
 sudo podman rm test
 sudo podman rmi -f localhost/s2i-sample-app localhost/s2i-do288-httpd registry.access.redhat.com/ubi8/ubi:8.0
 sudo skopeo delete docker://quay.io/${RHT_OCP4_QUAY_USER}/s2i-do288-httpd:latest
+podman logout
 
 lab apache-s2i finish
 ----------------------------------------------------------------------
