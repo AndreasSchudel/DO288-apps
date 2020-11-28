@@ -81,5 +81,55 @@ oc delete project ${RHT_OCP4_DEV_USER}-build-app
 lab build-app finish
 ----------------------------------------------------------------------
 
+----------------------------------------------------------------------
+lab s2i-scripts start
+
+sudo podman run --name test -it rhscl/httpd-24-rhel7 bash
+
+cat /usr/libexec/s2i/assemble
+cat /usr/libexec/s2i/run
+cat /usr/libexec/s2i/usage
+
+cd DO288-apps
+git checkout master
+
+cat /home/student/DO288-apps/s2i-scripts/index.html
+ls -l /home/student/DO288-apps/s2i-scripts/.s2i/bin 
+cat /home/student/DO288-apps/s2i-scripts/.s2i/bin/assemble
+cat /home/student/DO288-apps/s2i-scripts/.s2i/bin/run
+
+source /usr/local/etc/ocp4.config
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+
+oc new-project ${RHT_OCP4_DEV_USER}-s2i-scripts
+oc new-app --as-deployment-config --name bonjour httpd:2.4~https://github.com/${RHT_OCP4_GITHUB_USER}/DO288-apps --context-dir s2i-scripts
+
+oc logs -f bc/bonjour
+
+oc get pods
+oc expose svc bonjour
+oc get route
+curl http://bonjour-${RHT_OCP4_DEV_USER}-s2i-scripts.${RHT_OCP4_WILDCARD_DOMAIN}
+curl http://bonjour-${RHT_OCP4_DEV_USER}-s2i-scripts.${RHT_OCP4_WILDCARD_DOMAIN}/info.html
+
+oc logs bonjour-1-
+
+cd ~
+oc delete project ${RHT_OCP4_DEV_USER}-s2i-scripts
+sudo podman rm test
+
+lab s2i-scripts finsih
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
+
 
 
