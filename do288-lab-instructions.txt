@@ -330,6 +330,13 @@ lab create-template finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
+lab review-template start
+
+cp ~/DO288/labs/review-template/todo-template.yaml ~/todo-template.yaml
+
+
+lab review-template grade
+lab review-template finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
