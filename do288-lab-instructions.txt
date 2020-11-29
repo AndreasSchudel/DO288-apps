@@ -263,6 +263,36 @@ lab custom-s2i finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
+lab create-template start
+
+source /usr/local/etc/ocp4.config
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+oc project ${RHT_OCP4_DEV_USER}-quotes-dev
+oc status
+
+oc get pvc
+oc get route/quotesapi -o jsonpath='{.spec.host}{"\n"}'
+
+vi ~/quotes-template-clean.yaml
+
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: quotes
+  annotations:
+    openshift.io/display-name: Quotes Application
+    description: The Quotes application provides an HTTP API that returns a random, funny quote.
+    iconClass: icon-php
+    tags: php,mysql
+objects:
+
+oc get -o yaml --export is > /tmp/is.yaml
+cp /tmp/is.yaml /tmp/is-clean.yaml
+vi tmp/is-clean.yaml
+
+
+
+lab create-template finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
