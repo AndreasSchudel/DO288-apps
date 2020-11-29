@@ -333,13 +333,58 @@ lab create-template finish
 lab review-template start
 
 cp ~/DO288/labs/review-template/todo-template.yaml ~/todo-template.yaml
+vi ~/todo-template.yaml 
+cp ~/DO288/solutions/review-template ~/todo-template.yaml
 
+cp ~/DO288/labs/review-template/oc-new-app.sh ~/oc-new-app.sh
+vi ~/oc-new-app.sh
+cp ~/DO288/solutions/review-template/oc-new-app.sh ~/oc-new-app.sh
+
+source /usr/local/etc/ocp4.config
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+oc new-project ${RHT_OCP4_DEV_USER}-review-template
+
+~/oc-new-app.sh
+oc logs bc/todoapp -f
+oc get pods
+oc get route/todoapp -o jsonpath='{.spec.host}{"\n"}'
+curl -siw "\n" http://${RHT_OCP4_DEV_USER}-todo.${RHT_OCP4_WILDCARD_DOMAIN}/todo/api/items-count
 
 lab review-template grade
 lab review-template finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
+lab probes start
+
+source /usr/local/etc/ocp4.config
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+
+oc new-project ${RHT_OCP4_DEV_USER}-probes
+oc new-app --as-deployment-config --name probes --build-env npm_config_registry=http://${RHT_OCP4_NEXUS_SERVER}/repository/nodejs nodejs:12~https://github.com/${RHT_OCP4_GITHUB_USER}/DO288-apps --context-dir probes
+
+oc logs -f bc/probes
+oc get pods
+oc expose svc probes
+curl -i probes-${RHT_OCP4_DEV_USER}-probes.${RHT_OCP4_WILDCARD_DOMAIN}/ready
+curl -i probes-${RHT_OCP4_DEV_USER}-probes.${RHT_OCP4_WILDCARD_DOMAIN}/healthz
+curl probes-${RHT_OCP4_DEV_USER}-probes.${RHT_OCP4_WILDCARD_DOMAIN}
+
+oc set probe dc/probes --liveness --get-url=http://:8080/healthz --initial-delay-seconds=2 --timeout-seconds=2
+
+oc set probe dc/probes --readiness --get-url=http://:8080/ready --initial-delay-seconds=2 --timeout-seconds=2
+
+oc describe dc/probes
+oc get pods
+oc logs -f dc/probes
+
+~/DO288/labs/probes/kill.sh
+oc logs -f dc/probes
+oc describe pod/probes-3-qgf5j 
+
+oc delete project ${RHT_OCP4_DEV_USER}-probes
+
+lab probes finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
