@@ -273,24 +273,58 @@ oc status
 oc get pvc
 oc get route/quotesapi -o jsonpath='{.spec.host}{"\n"}'
 
-vi ~/quotes-template-clean.yaml
+cp ~/DO288/solutions/create-template/new-template.yaml ~/quotes-template-clean.yaml
 
-apiVersion: template.openshift.io/v1
-kind: Template
-metadata:
-  name: quotes
-  annotations:
-    openshift.io/display-name: Quotes Application
-    description: The Quotes application provides an HTTP API that returns a random, funny quote.
-    iconClass: icon-php
-    tags: php,mysql
-objects:
+cp ~/DO288/labs/create-template/is-clean.yaml /tmp/is-clean.yaml
+cp ~/DO288/labs/create-template/bc-clean.yaml /tmp/bc-clean.yaml
+cp ~/DO288/labs/create-template/dc-clean.yaml /tmp/dc-clean.yaml
+cp ~/DO288/labs/create-template/svc-clean.yaml /tmp/svc-clean.yaml
+cp ~/DO288/labs/create-template/route-clean.yaml /tmp/route-clean.yaml
+cp ~/DO288/labs/create-template/pvc-clean.yaml /tmp/pvc-clean.yaml
 
 oc get -o yaml --export is > /tmp/is.yaml
 cp /tmp/is.yaml /tmp/is-clean.yaml
-vi tmp/is-clean.yaml
+vi /tmp/is-clean.yaml
 
+oc get -o yaml --export bc > /tmp/bc.yaml
+cp /tmp/bc.yaml /tmp/bc-clean.yaml
+vi /tmp/bc-clean.yaml
 
+oc get -o yaml --export dc > /tmp/dc.yaml
+cp /tmp/dc.yaml /tmp/dc-clean.yaml
+vi /tmp/dc-clean.yaml
+
+oc get -o yaml --export svc > /tmp/svc.yaml
+cp /tmp/svc.yaml /tmp/svc-clean.yaml
+vi /tmp/svc-clean.yaml
+
+oc get -o yaml --export route > /tmp/route.yaml
+cp /tmp/route.yaml /tmp/route-clean.yaml
+vi /tmp/route-clean.yaml
+
+oc get -o yaml --export pvc > /tmp/pvc.yaml
+cp /tmp/pvc.yaml /tmp/pvc-clean.yaml
+vi /tmp/pvc-clean.yaml
+
+cat /tmp/is-clean.yaml >> ~/quotes-template-clean.yaml
+cat /tmp/bc-clean.yaml >> ~/quotes-template-clean.yaml
+cat /tmp/dc-clean.yaml >> ~/quotes-template-clean.yaml
+cat /tmp/svc-clean.yaml >> ~/quotes-template-clean.yaml
+cat /tmp/route-clean.yaml >> ~/quotes-template-clean.yaml
+cat /tmp/pvc-clean.yaml >> ~/quotes-template-clean.yaml
+
+cat ~/DO288/labs/create-template/parameters.yaml
+cp ~/quotes-template-clean.yaml ~/quotes-template.yaml
+
+cp ~/DO288/solutions/create-template/quotes-template.yaml ~/quotes-template.yaml
+
+oc new-project ${RHT_OCP4_DEV_USER}-myquotes
+oc new-app --file=quotes-template.yaml -p APP_GIT_URL=https://github.com/${RHT_OCP4_GITHUB_USER}/DO288-apps -p PASSWORD=mypass
+
+oc get pods
+~/DO288/labs/create-template/populate-db.sh
+oc get route/quotesapi -o jsonpath='{.spec.host}{"\n"}'
+curl quotesapi-${RHT_OCP4_DEV_USER}-myquotes.${RHT_OCP4_WILDCARD_DOMAIN}/get.php
 
 lab create-template finish
 ----------------------------------------------------------------------
