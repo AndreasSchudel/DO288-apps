@@ -482,6 +482,51 @@ lab app-deploy finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
+lab manage-deploy start
+
+cd ~/DO288-apps
+git checkout master
+git checkout -b manage-deploy
+git push -u origin manage-deploy
+
+source /usr/local/etc/ocp4.config
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+oc new-project ${RHT_OCP4_DEV_USER}-manage-deploy
+oc new-app --as-deployment-config --name scale php:7.3~https://github.com/${RHT_OCP4_GITHUB_USER}/DO288-apps#manage-deploy --context-dir php-scale
+
+oc logs -f bc/scale
+oc get pods
+oc expose svc scale
+oc get route scale -o jsonpath='{.spec.host}{"\n"}'
+curl http://scale-${RHT_OCP4_DEV_USER}-manage-deploy.${RHT_OCP4_WILDCARD_DOMAIN}
+
+oc describe dc/scale | grep 'Strategy'
+oc get route console -n openshift-console -o jsonpath='{.spec.host}{"\n"}'
+
+cat /usr/local/etc/ocp4.config
+echo $RHT_OCP4_DEV_USER
+echo $RHT_OCP4_DEV_PASSWORD
+
+curl http://scale-${RHT_OCP4_DEV_USER}-manage-deploy.${RHT_OCP4_WILDCARD_DOMAIN}
+curl http://scale-${RHT_OCP4_DEV_USER}-manage-deploy.${RHT_OCP4_WILDCARD_DOMAIN}
+
+vi ~/DO288-apps/php-scale/index.php
+<?php
+  print "This is version 2 of the app. I am running on host...
+?>
+
+git commit -a -m "Updated app to version 2"
+git push
+
+oc rollback dc/scale
+oc get pods
+curl http://scale-${RHT_OCP4_DEV_USER}-manage-deploy.${RHT_OCP4_WILDCARD_DOMAIN}
+curl http://scale-${RHT_OCP4_DEV_USER}-manage-deploy.${RHT_OCP4_WILDCARD_DOMAIN}
+
+lab manage-deploy grade
+
+oc delete project ${RHT_OCP4_DEV_USER}-manage-deploy
+lab manage-deploy finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
