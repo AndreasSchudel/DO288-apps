@@ -432,6 +432,53 @@ lab strategy finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
+lab app-deploy start
+
+cd ~/DO288-apps
+git checkout master
+[student@workstation DO288-apps]$ git checkout -b app-deploy
+[student@workstation DO288-apps]$ git push -u origin app-deploy
+cd ~
+
+ls -l ~/DO288-apps/quip/src/main/java/com/redhat/training/example
+
+source /usr/local/etc/ocp4.config
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+oc new-project ${RHT_OCP4_DEV_USER}-app-deploy
+
+oc new-app --as-deployment-config --name quip --build-env MAVEN_MIRROR_URL=http://${RHT_OCP4_NEXUS_SERVER}/repository/java -i redhat-openjdk18-openshift:1.5 https://github.com/${RHT_OCP4_GITHUB_USER}/DO288-apps#app-deploy --context-dir quip
+
+oc logs -f bc/quip
+oc get pods
+oc logs -f bc/quip
+oc describe svc/quip
+
+oc expose svc quip
+oc get route/quip -o jsonpath='{.spec.host}{"\n"}'
+curl http://quip-${RHT_OCP4_DEV_USER}-app-deploy.${RHT_OCP4_WILDCARD_DOMAIN}
+
+oc set probe dc/quip --liveness --get-url=http://:8080/ready --initial-delay-seconds=30 --timeout-seconds=2
+oc set probe dc/quip --readiness --get-url=http://:8080/ready --initial-delay-seconds=30 --timeout-seconds=2
+
+oc describe dc/quip
+oc get pods
+oc describe pod quip-3-* | grep http-get
+
+curl http://quip-${RHT_OCP4_DEV_USER}-app-deploy.${RHT_OCP4_WILDCARD_DOMAIN}
+
+cat ~/DO288/labs/app-deploy/app-change.sh
+~/DO288/labs/app-deploy/app-change.sh
+
+oc start-build quip -F
+oc get pods
+curl http://quip-${RHT_OCP4_DEV_USER}-app-deploy.${RHT_OCP4_WILDCARD_DOMAIN}
+
+oc rollback dc/quip
+oc get pods
+curl http://quip-${RHT_OCP4_DEV_USER}-app-deploy.${RHT_OCP4_WILDCARD_DOMAIN}
+
+oc delete project ${RHT_OCP4_DEV_USER}-app-deploy
+lab app-deploy finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
