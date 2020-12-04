@@ -573,6 +573,103 @@ lab simple-pipeline finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
+lab custom-pipeline start
+
+source /usr/local/etc/ocp4.config
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+oc get pods -n ${RHT_OCP4_DEV_USER}-ci-cd
+
+oc new-project ${RHT_OCP4_DEV_USER}-books-stage
+oc new-project ${RHT_OCP4_DEV_USER}-books-dev
+
+vi ~/DO288/labs/custom-pipeline/custom-pipeline-bc.json
+
+cd ~/DO288-apps
+git checkout master
+git checkout -b custom-pipeline
+git push -u origin custom-pipeline
+
+vi ~/DO288-apps/books/jenkins/Jenkinsfile
+
+agent {
+  node {
+    label 'nodejs'
+  }
+}
+
+  DEV_PROJECT = "andreas-schudel-cloudops-books-dev"
+  STAGE_PROJECT = "andreas-schudel-cloudops-books-stage"
+  APP_GIT_URL = "https://github.com/AndreasSchudel/DO288-apps"
+  NEXUS_SERVER = "http://nexus-common.apps.cluster.domain.example.com/repository/nodejs"
+
+sh '''
+        oc project ${DEV_PROJECT}
+        oc new-app --as-deployment-config --name books nodejs:12~${APP_GIT_URL} \
+        --build-env npm_config_registry=${NEXUS_SERVER} \
+        --context-dir ${APP_NAME}
+
+        oc expose svc/${APP_NAME}
+   '''
+
+script {
+    openshift.withCluster() {
+    openshift.tag("${DEV_PROJECT}/books:latest", "${STAGE_PROJECT}/books:stage")
+  }
+}
+
+sh '''
+      oc project ${STAGE_PROJECT}
+      oc new-app --as-deployment-config --name books -i books:stage
+      oc expose svc/${APP_NAME}
+   '''
+openshift.withProject( "${STAGE_PROJECT}" ) {
+  def deployment = openshift.selector("dc", "${APP_NAME}").rollout()
+  openshift.selector("dc", "${APP_NAME}").related('pods').untilEach(1) {
+    return (it.object().status.phase == "Running")
+  }
+}
+
+cd ~/DO288-apps/books
+git commit -a -m "Completed Jenkinsfile for books microservice"
+git push
+cd ~
+
+oc get route/jenkins -n ${RHT_OCP4_DEV_USER}-ci-cd -o jsonpath='{.spec.host}{"\n"}'
+
+Jenkins:
+andreas-schudel-cloudops-books-dev
+
+oc policy add-role-to-user edit system:serviceaccount:${RHT_OCP4_DEV_USER}-ci-cd:jenkins -n ${RHT_OCP4_DEV_USER}-books-dev
+oc policy add-role-to-user edit system:serviceaccount:${RHT_OCP4_DEV_USER}-ci-cd:jenkins -n ${RHT_OCP4_DEV_USER}-books-stage
+
+oc create -f ~/DO288/labs/custom-pipeline/custom-pipeline-bc.json
+oc start-build custom-pipeline
+
+vi ~/DO288-apps/books/tests/app_test.js
+cd ~/DO288-apps/books
+git commit -a -m "Fixed failed unit test."
+git push
+cd ~
+
+oc start-build custom-pipeline
+
+vi ~/DO288-apps/books/routes/authors.js
+cd ~/DO288-apps/books
+git commit -a -m "Fixed linting errors."
+git push
+cd ~
+
+oc start-build custom-pipeline
+
+oc get pods -n ${RHT_OCP4_DEV_USER}-books-dev
+oc get pods -n ${RHT_OCP4_DEV_USER}-books-stage
+oc get route/books -n ${RHT_OCP4_DEV_USER}-books-dev -o jsonpath='{.spec.host}{"\n"}'
+
+oc delete project ${RHT_OCP4_DEV_USER}-books-dev
+oc delete project ${RHT_OCP4_DEV_USER}-books-stage
+oc delete project ${RHT_OCP4_DEV_USER}-ci-cd
+
+lab custom-pipeline finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
