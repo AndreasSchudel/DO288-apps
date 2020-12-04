@@ -563,7 +563,7 @@ oc get route/jenkins -o jsonpath='{.spec.host}{"\n"}'
 
 oc new-project ${RHT_OCP4_DEV_USER}-simple-pipeline
 oc policy add-role-to-user edit system:serviceaccount:${RHT_OCP4_DEV_USER}-ci-cd:jenkins -n ${RHT_OCP4_DEV_USER}-simple-pipeline
-oc create -f ~/DO288/labs/simple-pipeline/simple-pipeline.yaml buildconfig.build.openshift.io/simple-pipeline created
+oc create -f ~/DO288/labs/simple-pipeline/simple-pipeline.yaml
 oc get route console -n openshift-console -o jsonpath='{.spec.host}{"\n"}'
 
 oc start-build simple-pipeline
