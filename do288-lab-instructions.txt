@@ -388,11 +388,57 @@ lab probes finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
+lab strategy start
+
+source /usr/local/etc/ocp4.config
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+oc new-project ${RHT_OCP4_DEV_USER}-strategy
+oc new-app --as-deployment-config --name mysql -e MYSQL_USER=test -e MYSQL_PASSWORD=redhat -e MYSQL_DATABASE=testdb --docker-image registry.access.redhat.com/rhscl/mysql-57-rhel7
+
+oc get pods
+oc get dc/mysql -o jsonpath='{.spec.strategy.type}{"\n"}'
+oc set triggers dc/mysql --from-config --remove
+
+oc patch dc/mysql --patch '{"spec":{"strategy":{"type":"Recreate"}}}'
+oc patch dc/mysql --type=json -p='[{"op":"remove", "path": "/spec/strategy/rollingParams"}]'
+
+cat ~/DO288/labs/strategy/users.sql
+cat ~/DO288/labs/strategy/import.sh
+
+cat ~/DO288/labs/strategy/post-hook.sh
+~/DO288/labs/strategy/post-hook.sh
+
+oc describe dc/mysql | grep -A 3 'Strategy:'
+oc rollout latest dc/mysql
+watch -n 2 oc get pods
+
+oc logs mysql-2-hook-post
+oc set env dc/mysql HOOK_RETRIES=5
+oc rollout latest dc/mysql
+
+watch -n 2 oc get pods
+oc logs -f mysql-3-hook-post
+
+oc get pods
+oc rsh mysql-3-
+mysql -u$MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE
+mysql show tables;
+select * from users;
+
+exit
+
+oc delete project ${RHT_OCP4_DEV_USER}-strategy
+lab strategy finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
 ----------------------------------------------------------------------
 
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
 
 
 
