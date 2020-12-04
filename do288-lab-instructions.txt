@@ -436,8 +436,8 @@ lab app-deploy start
 
 cd ~/DO288-apps
 git checkout master
-[student@workstation DO288-apps]$ git checkout -b app-deploy
-[student@workstation DO288-apps]$ git push -u origin app-deploy
+git checkout -b app-deploy
+git push -u origin app-deploy
 cd ~
 
 ls -l ~/DO288-apps/quip/src/main/java/com/redhat/training/example
