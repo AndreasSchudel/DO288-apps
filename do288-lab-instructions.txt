@@ -530,7 +530,63 @@ lab manage-deploy finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
+lab simple-pipeline start
+
+source /usr/local/etc/ocp4.config
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+oc get templates -n openshift | grep jenkins
+
+oc new-project ${RHT_OCP4_DEV_USER}-ci-cd
+oc new-app  --as-deployment-config jenkins-ephemeral -p MEMORY_LIMIT=2048Mi
+
+cat ~/DO288/labs/simple-pipeline/simple-pipeline.yaml
+vi ~/DO288/labs/simple-pipeline/simple-pipeline.yaml
+git:
+  uri: "https://github.com/AndreasSchudel/DO288-apps"
+  ref: "simple-pipeline"
+
+cd ~/DO288-apps
+git checkout master
+git checkout -b simple-pipeline
+git push -u origin simple-pipeline
+
+vi ~/DO288-apps/simple-pipeline/Jenkinsfile
+-> edit several lines
+
+cd simple-pipeline
+git commit -a -m "Completed Jenkinsfile"
+git push
+cd ~
+
+oc get pods
+oc get route/jenkins -o jsonpath='{.spec.host}{"\n"}'
+
+oc new-project ${RHT_OCP4_DEV_USER}-simple-pipeline
+oc policy add-role-to-user edit system:serviceaccount:${RHT_OCP4_DEV_USER}-ci-cd:jenkins -n ${RHT_OCP4_DEV_USER}-simple-pipeline
+oc create -f ~/DO288/labs/simple-pipeline/simple-pipeline.yaml buildconfig.build.openshift.io/simple-pipeline created
+oc get route console -n openshift-console -o jsonpath='{.spec.host}{"\n"}'
+
+oc start-build simple-pipeline
+
+oc delete project ${RHT_OCP4_DEV_USER}-simple-pipeline
+lab simple-pipeline finish
 ----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
+
+
+
 
 
 
