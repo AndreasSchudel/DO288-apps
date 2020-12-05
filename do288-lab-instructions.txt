@@ -888,6 +888,50 @@ lab nexus-service finish
 
 
 ----------------------------------------------------------------------
+lab micro-java start
+
+cd ~/DO288-apps/micro-java
+git checkout master
+git checkout -b micro-config
+git push -u origin micro-config
+
+ls -l src/main/java/com/redhat/training/openshift/hello
+cat src/main/java/com/redhat/training/openshift/hello/JaxRsActivator.java
+cat src/main/java/com/redhat/training/openshift/hello/HelloResource.java
+cat pom.xml
+
+mvn clean
+mvn fabric8:resource
+cat target/classes/META-INF/fabric8/openshift/hello-deploymentconfig.yml
+cat target/classes/META-INF/fabric8/openshift/hello-service.yml
+cat target/classes/META-INF/fabric8/openshift/hello-route.yml
+cat target/classes/META-INF/fabric8/openshift/openshift.yml
+
+source /usr/local/etc/ocp4.config
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+oc new-project ${RHT_OCP4_DEV_USER}-micro-java
+
+mvn fabric8:deploy
+oc status
+oc get pods
+
+ROUTE_URL=$(oc get route hello --template='{{.spec.host}}') 
+curl ${ROUTE_URL}/api/hello
+
+cat ~/DO288/labs/micro-java/cm.yml
+cat ~/DO288/labs/micro-java/deployment.yml
+
+cp -v ~/DO288/labs/micro-java/*.yml ./src/main/fabric8/
+git add src/main/fabric8/*.yml
+git commit -am "Add YAML fragments."
+
+mvn fabric8:deploy
+oc get cm/env-config
+oc get pods
+curl ${ROUTE_URL}/api/hello
+
+oc delete project ${RHT_OCP4_DEV_USER}-micro-java
+lab micro-java finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
