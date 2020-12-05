@@ -935,6 +935,48 @@ lab micro-java finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
+lab todo-migrate start
+
+source /usr/local/etc/ocp4.config
+MYSQL_DB=$(echo mysql.ocp-${RHT_OCP4_WILDCARD_DOMAIN#"apps."})
+mysql -h${MYSQL_DB} -utodoapp -predhat123 todo
+exit
+
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+oc new-project ${RHT_OCP4_DEV_USER}-todo-migrate
+oc create service externalname tododb --external-name ${MYSQL_DB}
+oc get svc
+
+cd ~/DO288-apps
+git checkout master
+git checkout -b todo-migrate
+git push -u origin todo-migrate
+cd todo-api-micro
+
+mvn fabric8:deploy
+oc get pods
+oc logs  --follow
+
+cp ~/DO288/solutions/todo-migrate/cm.yml src/main/fabric8
+cp ~/DO288/solutions/todo-migrate/deployment.yml src/main/fabric8
+
+mvn fabric8:resource-apply
+oc describe dc/todo-api | grep -A1 "Environment Variables"
+oc get configmap
+oc get pods
+oc logs  --follow
+
+ROUTE_URL=$(oc get route todo-api --template={{.spec.host}})
+curl -s ${ROUTE_URL}/todo/api/items/6 | python -m json.tool
+
+git add src/main/fabric8/*
+git commit -m "add YAML fragments"
+git push origin todo-migrate
+
+
+lab todo-migrate grade
+
+lab todo-migrate finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
