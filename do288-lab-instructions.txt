@@ -673,6 +673,98 @@ lab custom-pipeline finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
+lab review-cicd start
+
+source /usr/local/etc/ocp4.config
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+oc new-project ${RHT_OCP4_DEV_USER}-jenkins
+oc new-app --as-deployment-config jenkins-ephemeral -p MEMORY_LIMIT=2048Mi
+
+oc get pods
+oc get route/jenkins -o jsonpath='{.spec.host}{"\n"}'
+
+-> Jenkins:
+- Configure sync plugin: andreas-schudel-cloudops-movies-dev
+
+oc new-project ${RHT_OCP4_DEV_USER}-movies-stage
+oc new-project ${RHT_OCP4_DEV_USER}-movies-dev
+
+vi ~/DO288/labs/review-cicd/movies-bc.json
+-> https://github.com/AndreasSchudel/DO288-apps
+
+cd ~/DO288-apps
+git checkout master
+git checkout -b review-cicd
+git push -u origin review-cicd
+cd ~
+
+cat ~/DO288-apps/movies/Jenkinsfile
+cp ~/DO288/solutions/review-cicd/Jenkinsfile ~/DO288-apps/movies/Jenkinsfile
+vi ~/DO288-apps/movies/Jenkinsfile
+
+RHT_OCP4_MASTER_API=https://api.eu45.prod.nextcle.com:6443
+RHT_OCP4_WILDCARD_DOMAIN=apps.eu45.prod.nextcle.com
+RHT_OCP4_NEXUS_SERVER=nexus-common.apps.eu45.prod.nextcle.com
+RHT_OCP4_DEV_USER=andreas-schudel-cloudops
+RHT_OCP4_DEV_PASSWORD=a9253bce924d43128dc8
+RHT_OCP4_GITHUB_USER=AndreasSchudel
+RHT_OCP4_QUAY_USER=andreasschudel
+
+cd ~/DO288-apps/movies
+git commit -a -m "Completed Jenkinsfile for movies microservice"
+git push
+cd ~
+
+oc project ${RHT_OCP4_DEV_USER}-movies-dev
+oc policy add-role-to-user edit system:serviceaccount:${RHT_OCP4_DEV_USER}-jenkins:jenkins -n ${RHT_OCP4_DEV_USER}-movies-dev
+oc policy add-role-to-user edit system:serviceaccount:${RHT_OCP4_DEV_USER}-jenkins:jenkins -n ${RHT_OCP4_DEV_USER}-movies-stage
+
+oc create -f ~/DO288/labs/review-cicd/movies-bc.json
+oc get route console -n openshift-console -o jsonpath='{.spec.host}{"\n"}'
+
+oc start-build movies-pipeline
+
+vi ~/DO288-apps/movies/src/test/java/com/redhat/movies/MoviesApplicationTests.java
+
+Assert.assertEquals(7, movies.size());
+-> Assert.assertEquals(6, movies.size());
+Assert.assertEquals("Ready", response.getBody());
+-> Assert.assertEquals("OK", response.getBody());
+
+cd ~/DO288-apps/movies
+git commit -a -m "Fixed failed unit test."
+git push
+cd ~
+
+oc start-build movies-pipeline
+
+vi ~/DO288-apps/movies/src/main/java/com/redhat/movies/MoviesController.java
+
+Delete:
+import java.io.File;
+private String flag = "READY";
+
+cd ~/DO288-apps/movies
+git commit -a -m "Removed unused imports and variables."
+git push
+cd ~
+
+oc start-build movies-pipeline
+
+oc get pods -n ${RHT_OCP4_DEV_USER}-movies-dev
+oc get pods -n ${RHT_OCP4_DEV_USER}-movies-stage
+
+oc get route/movies -n ${RHT_OCP4_DEV_USER}-movies-dev -o jsonpath='{.spec.host}{"\n"}'
+curl movies-${RHT_OCP4_DEV_USER}-movies-dev.${RHT_OCP4_WILDCARD_DOMAIN}/movies
+
+
+lab review-cicd grade
+
+oc delete project ${RHT_OCP4_DEV_USER}-movies-dev
+oc delete project ${RHT_OCP4_DEV_USER}-movies-stage
+oc delete project ${RHT_OCP4_DEV_USER}-jenkins
+
+lab review-cicd finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
