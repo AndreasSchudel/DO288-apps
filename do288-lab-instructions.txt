@@ -980,6 +980,57 @@ lab todo-migrate finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
+lab review-dockerfile start
+
+cd ~/DO288-apps
+git checkout master
+
+git checkout -b review-dockerfile
+git push -u origin review-dockerfile
+
+vi ~/DO288-apps/todo-frontend/Dockerfile
+cp ~/DO288/solutions/review-dockerfile/Dockerfile-optimized ~/DO288-apps/todo-frontend/Dockerfile
+
+vi ~/DO288-apps/todo-frontend/Dockerfile
+cp ~/DO288/solutions/review-dockerfile/Dockerfile-default-scc ~/DO288-apps/todo-frontend/Dockerfile
+
+cd todo-frontend
+sudo podman build -t todo-frontend .
+sudo podman images
+sudo podman run --name testfrontend -d -p 8080:8080 todo-frontend
+
+curl -s localhost:8080 | grep h1
+sudo podman stop testfrontend
+sudo podman rm testfrontend
+
+git commit -a -m 'Fixed for OpenShift'
+git push
+
+cd ~
+source /usr/local/etc/ocp4.config
+sudo podman login -u ${RHT_OCP4_QUAY_USER} quay.io
+sudo skopeo copy containers-storage:localhost/todo-frontend docker://quay.io/${RHT_OCP4_QUAY_USER}/todo-frontend
+
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+oc new-project ${RHT_OCP4_DEV_USER}-review-common
+
+podman login -u ${RHT_OCP4_QUAY_USER} quay.io
+oc create secret generic quayio --from-file .dockerconfigjson=${XDG_RUNTIME_DIR}/containers/auth.json --type kubernetes.io/dockerconfigjson
+oc import-image todo-frontend --confirm --reference-policy local --from quay.io/${RHT_OCP4_QUAY_USER}/todo-frontend
+
+oc new-project ${RHT_OCP4_DEV_USER}-review-dockerfile
+oc policy add-role-to-group -n ${RHT_OCP4_DEV_USER}-review-common system:image-puller system:serviceaccounts:${RHT_OCP4_DEV_USER}-review-dockerfile
+oc new-app --as-deployment-config --name frontend -e BACKEND_HOST=api.example.com -i ${RHT_OCP4_DEV_USER}-review-common/todo-frontend
+
+oc get pods
+oc expose svc frontend
+oc get routes
+
+curl -s http://frontend-${RHT_OCP4_DEV_USER}-review-dockerfile.${RHT_OCP4_WILDCARD_DOMAIN} | grep h1
+
+lab review-dockerfile grade
+
+lab review-dockerfile start
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
