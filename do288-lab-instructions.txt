@@ -1113,16 +1113,41 @@ oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_A
 
 oc get template nodejs-mongodb-example -n openshift -o yaml | less
 
+#use solution:
+cp ~/DO288/solutions/review-multicontainer/todoapp.yaml ~/todoapp.yaml
+
+oc project ${RHT_OCP4_DEV_USER}-review-common
+oc new-app --dry-run -f ~/todoapp.yaml -p PASSWORD=x -p HOSTNAME=y -p BACKEND=z
+oc create -f ~/todoapp.yaml
+oc get templates
+oc process --parameters todoapp
+
+oc new-project ${RHT_OCP4_DEV_USER}-review-multicontainer
+oc policy add-role-to-group -n ${RHT_OCP4_DEV_USER}-review-common system:image-puller system:serviceaccounts:${RHT_OCP4_DEV_USER}-review-multicontainer
+
+oc new-app ${RHT_OCP4_DEV_USER}-review-common/todoapp -p PASSWORD=redhat -p CLEAN_DATABASE=false -p HOSTNAME=todoui-${RHT_OCP4_DEV_USER}.${RHT_OCP4_WILDCARD_DOMAIN} -p BACKEND=todoapi-${RHT_OCP4_DEV_USER}.${RHT_OCP4_WILDCARD_DOMAIN}
+
+oc logs -f bc/backend
+oc get pods
+oc get routes
+curl -siw "\n" todoapi-${RHT_OCP4_DEV_USER}.${RHT_OCP4_WILDCARD_DOMAIN}/todo/api/items-count
+
+oc port-forward tododb-1-dvcqm 30306:3306
+# 2. terminal
+mysql -h127.0.0.1 -P30306 -utodoapp -predhat todo < ~/DO288/labs/review-multicontainer/todo.sql
+
+oc get pods
+oc rollout latest dc/backend
+oc get pods
+
+curl -siw "\n" todoapi-${RHT_OCP4_DEV_USER}.${RHT_OCP4_WILDCARD_DOMAIN}/todo/api/items-count
+oc get route
 
 
 lab review-multicontainer grade
 lab review-multicontainer finish
+lab review-multicontainer cleanup
+lab review-service cleanup
+lab review-dockerfile cleanup
 ----------------------------------------------------------------------
-
-
-
-
-
-
-
 
