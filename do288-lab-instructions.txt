@@ -1099,7 +1099,27 @@ lab review-service finish
 ----------------------------------------------------------------------
 
 ----------------------------------------------------------------------
+lab review-multicontainer start
+
+cp ~/DO288/labs/review-multicontainer/todoapp.yaml ~/todoapp.yaml
+grep '^  kind:' ~/todoapp.yaml
+
+vi ~/todoapp.yaml
+
+oc process --parameters -f ~/todoapp.yaml
+
+source /usr/local/etc/ocp4.config
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+
+oc get template nodejs-mongodb-example -n openshift -o yaml | less
+
+
+
+lab review-multicontainer grade
+lab review-multicontainer finish
 ----------------------------------------------------------------------
+
+
 
 
 
